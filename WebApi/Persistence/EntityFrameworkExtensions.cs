@@ -6,16 +6,6 @@ namespace AspireWithSqlServer.WebApi.Persistence;
 
 public static class EntityFrameworkExtensions
 {
-    public static string GetConnectionString(this IConfiguration configuration)
-    {
-        var connectionString = configuration.GetConnectionString("Default");
-        var sqlServer = Environment.GetEnvironmentVariable("SQL_SERVER") ?? "localhost";
-        var sqlPassword = Environment.GetEnvironmentVariable("SQL_PASSWORD") ?? "YourSecretPassword01!";
-        return connectionString!
-            .Replace("${SQL_SERVER}", sqlServer)
-            .Replace("${SQL_PASSWORD}", sqlPassword);
-    }
-
     public static void ApplyMigrations(this IServiceProvider services)
     {
         using var scope = services.CreateScope();
@@ -30,6 +20,9 @@ public static class EntityFrameworkExtensions
 
             var dbContext = scope.ServiceProvider.GetService<WeatherForecastContext>() ??
                             throw new UnreachableException("Missing DbContext.");
+            
+            logger.LogInformation("Connection string: {ConnectionString}", dbContext.Database.GetConnectionString());
+            
             dbContext.Database.Migrate();
 
             logger.LogInformation("Finished migrating database.");
