@@ -4,7 +4,7 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 var sqlPassword = "YourSecretPassword01!"; 
 
-var sqlServer = builder.AddSqlServerContainer("localhost", sqlPassword, 1433)
+var sqlServer = builder.AddSqlServerContainer("127.0.0.1", sqlPassword, 1433)
     .WithAnnotation(
         new ContainerImageAnnotation { Registry = "mcr.microsoft.com", Image = "azure-sql-edge", Tag = "latest" }
     );
