@@ -10,7 +10,6 @@ var sqlServer = builder.AddSqlServerContainer("127.0.0.1", sqlPassword, 1433)
     );
 
 builder.AddProject<AspireWithSqlServer_WebApi>("WebApi")
-    .WithEnvironment("SQL_PASSWORD", sqlPassword)
-    .WithEnvironment("SQL_SERVER", sqlServer.Resource.Name);
+    .WithReference(sqlServer);
 
 builder.Build().Run();
