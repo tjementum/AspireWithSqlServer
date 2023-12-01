@@ -11,9 +11,7 @@ builder.AddServiceDefaults();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-var connectionString = builder.Configuration.GetConnectionString();
-Console.WriteLine("connectionString: " + connectionString);
-builder.Services.AddDbContext<WeatherForecastContext>(options => options.UseSqlServer(connectionString));
+builder.AddSqlServerDbContext<WeatherForecastContext>("weather");
 
 var app = builder.Build();
 app.Services.ApplyMigrations();
