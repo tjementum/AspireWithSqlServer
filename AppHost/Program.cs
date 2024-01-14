@@ -2,12 +2,10 @@ using Projects;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-var sqlPassword = "YourSecretPassword01!"; 
-
-var sqlServer = builder.AddSqlServerContainer("localhost", sqlPassword, 1433);
+var sqlServer = builder.AddSqlServerContainer("default")
+    .AddDatabase("weather");
 
 builder.AddProject<AspireWithSqlServer_WebApi>("WebApi")
-    .WithEnvironment("SQL_PASSWORD", sqlPassword)
-    .WithEnvironment("SQL_SERVER", sqlServer.Resource.Name);
+    .WithReference(sqlServer);
 
 builder.Build().Run();
