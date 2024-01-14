@@ -1,5 +1,7 @@
 using System.Diagnostics;
+using System.Net.Sockets;
 using System.Reflection;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 
 namespace AspireWithSqlServer.WebApi.Persistence;
@@ -22,35 +24,57 @@ public static class EntityFrameworkExtensions
 
         var loggerFactory = scope.ServiceProvider.GetRequiredService<ILoggerFactory>();
         var logger = loggerFactory.CreateLogger(nameof(EntityFrameworkExtensions));
-        try
+
+        var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "Unknown";
+        logger.LogInformation("Start migrating database. Version: {Version}", version);
+
+        var retryCount = 0;
+        while (retryCount <= 30)
         {
-            var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "Unknown";
+            if (retryCount >= 1)
+                logger.LogInformation("Waiting for databases to be ready. Retry count: {RetryCount}", retryCount);
 
-            logger.LogInformation("Start migrating database. Version: {Version}", version);
-
-            var dbContext = scope.ServiceProvider.GetService<WeatherForecastContext>() ??
-                            throw new UnreachableException("Missing DbContext.");
-            dbContext.Database.Migrate();
-
-            logger.LogInformation("Finished migrating database.");
-
-            dbContext.WeatherForecasts.AddRange(new List<WeatherForecast>
+            try
             {
-                new() { Id = new Guid(), Date = DateTime.Today, Summary = "Sunny", TemperatureC = 30 },
-                new() { Id = new Guid(), Date = DateTime.Today.AddDays(1), Summary = "Rainy", TemperatureC = 10 },
-                new() { Id = new Guid(), Date = DateTime.Today.AddDays(2), Summary = "Cloudy", TemperatureC = 20 },
-                new() { Id = new Guid(), Date = DateTime.Today.AddDays(3), Summary = "Sunny", TemperatureC = 25 }
-            });
-            dbContext.SaveChanges();
+                var dbContext = scope.ServiceProvider.GetService<WeatherForecastContext>() ??
+                                throw new UnreachableException("Missing DbContext.");
 
-            logger.LogInformation("Created dummy data in database.");
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "An error occurred while applying migrations.");
+                dbContext.Database.Migrate();
 
-            // Wait for the logger to flush
-            Thread.Sleep(TimeSpan.FromSeconds(1));
+                logger.LogInformation("Finished migrating database.");
+
+                dbContext.WeatherForecasts.AddRange(new List<WeatherForecast>
+                {
+                    new() { Id = Guid.NewGuid(), Date = DateTime.Today, Summary = "Sunny", TemperatureC = 30 },
+                    new() { Id = Guid.NewGuid(), Date = DateTime.Today.AddDays(1), Summary = "Rainy", TemperatureC = 10 },
+                    new() { Id = Guid.NewGuid(), Date = DateTime.Today.AddDays(2), Summary = "Cloudy", TemperatureC = 20 },
+                    new() { Id = Guid.NewGuid(), Date = DateTime.Today.AddDays(3), Summary = "Sunny", TemperatureC = 25 }
+                });
+                dbContext.SaveChanges();
+
+                logger.LogInformation("Created dummy data in database.");
+
+                break;
+            }
+            catch (SqlException ex) when (ex.Message.Contains("an error occurred during the pre-login handshake"))
+            {
+                // Known error in Aspire, when SQL Server is not ready. See: https://github.com/dotnet/aspire/issues/1023
+                retryCount++;
+                Thread.Sleep(TimeSpan.FromSeconds(1));
+            }
+            catch (SocketException ex) when (ex.Message.Contains("Invalid argument"))
+            {
+                // Known error in Aspire, when SQL Server is not ready See: https://github.com/dotnet/aspire/issues/1023
+                retryCount++;
+                Thread.Sleep(TimeSpan.FromSeconds(1));
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "An error occurred while applying migrations.");
+
+                // Wait for the logger to flush
+                Thread.Sleep(TimeSpan.FromSeconds(1));
+            }
         }
     }
 }
