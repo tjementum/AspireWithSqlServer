@@ -8,7 +8,7 @@ namespace AspireWithSqlServer.WebApi.Persistence;
 
 public static class EntityFrameworkExtensions
 {
-    public static void ApplyMigrations(this IServiceProvider services)
+    public static async Task ApplyMigrations(this IServiceProvider services, CancellationToken cancellationToken = default)
     {
         using var scope = services.CreateScope();
 
@@ -29,9 +29,11 @@ public static class EntityFrameworkExtensions
                 var dbContext = scope.ServiceProvider.GetService<WeatherForecastContext>() ??
                                 throw new UnreachableException("Missing DbContext.");
 
-                dbContext.Database.Migrate();
+                var strategy = dbContext.Database.CreateExecutionStrategy();
 
-                logger.LogInformation("Finished migrating database.");
+                await strategy.ExecuteAsync(() => dbContext.Database.MigrateAsync(cancellationToken));
+
+                logger.LogInformation("Seeding database");
 
                 dbContext.WeatherForecasts.AddRange(new List<WeatherForecast>
                 {
@@ -40,10 +42,10 @@ public static class EntityFrameworkExtensions
                     new() { Id = Guid.NewGuid(), Date = DateTime.Today.AddDays(2), Summary = "Cloudy", TemperatureC = 20 },
                     new() { Id = Guid.NewGuid(), Date = DateTime.Today.AddDays(3), Summary = "Sunny", TemperatureC = 25 }
                 });
-                dbContext.SaveChanges();
+
+                await dbContext.SaveChangesAsync(cancellationToken);
 
                 logger.LogInformation("Created dummy data in database.");
-
                 break;
             }
             catch (SqlException ex) when (ex.Message.Contains("an error occurred during the pre-login handshake"))
