@@ -2,10 +2,10 @@ using Projects;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-var sqlServer = builder.AddSqlServerContainer("default")
+var sqlServer = builder.AddSqlServer("default")
     .AddDatabase("weather");
 
-builder.AddProject<AspireWithSqlServer_WebApi>("WebApi")
+builder.AddProject<WebApi>("WebApi")
     .WithReference(sqlServer);
 
 builder.Build().Run();
