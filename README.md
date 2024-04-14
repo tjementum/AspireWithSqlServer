@@ -1,8 +1,6 @@
 # Connection to SQL Server database started using Aspire Host fails on macOS
 
-This project demonstrates a problem with connecting to SQL Server from a .NET Minimal API on a Mac, occurring specifically when the connection is initiated from an Aspire Host.
-
-See this [GitHub issue on the Aspire project](https://github.com/dotnet/aspire/issues/1023).
+This project demonstrates how to use .NET Aspire with SQL Server and Entity Framework. Specifically, it shows how to workaround a bug in SQLClient that, when used together with .NET Aspire, fails with strange exceptions if the connection to the Database is made before the SQL server is fully started. See this [GitHub issue on the Aspire project](https://github.com/dotnet/aspire/issues/1023).
 
 ## The Error:
 
@@ -92,8 +90,8 @@ Notice that once the WebApi starts, the [Swagger UI](http://localhost:5202/swagg
 
 ## Prerequisites
 
-- Docker Desktop 4.25.2
-- .NET 8.0.100
+- Docker Desktop
+- .NET 8
 - .NET Aspire (`dotnet workload install aspire`)
 
 ## Environment
